@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
 #### Función Half-up value round. Se hace porque para python round(0.035) = round(0.045) = 0.4
 # y esto claramente es incorrecto según lo que se nos enseña en la escuela
@@ -10,7 +11,16 @@ def HUP_round(series, decimals=3): # por ahora solo tolera rendondeo de decimale
 
 #### Función para unir dos dataframes a partir de su columna de tiempo. Únicamente se hace la operación
 # para las columnas
-def time_join(dframe1, dframe2, df1_column, df2_column, decimals=3, time_column1=0, time_column2=0):
+def time_join(
+    dframe1: DataFrame,
+    dframe2: DataFrame,
+    df1_column: str | list[str],
+    df2_column: str | list[str],
+    decimals: int = 3,
+    time_column1: int = 0,
+    time_column2: int = 0
+) -> DataFrame:
+    
     df1_columns = dframe1.columns
     df2_columns = dframe2.columns
 
@@ -57,7 +67,15 @@ def time_join(dframe1, dframe2, df1_column, df2_column, decimals=3, time_column1
 ####
 
 #### Función para obtemer Root Mean Squared Error entre 2 señales
-def RMSE(dframe1, dframe2, df1_column, df2_column, decimals=3, time_column1=0, time_column2=0):
+def RMSE(
+    dframe1: DataFrame,
+    dframe2: DataFrame,
+    df1_column: str,
+    df2_column: str,
+    decimals: int = 3,
+    time_column1: int = 0,
+    time_column2 :int = 0
+    ) -> float:
     
     if type(df1_column) != str or type(df2_column) != str:
         print('Error. Solo es posible obtener el error de dos columnas a la vez')
@@ -74,7 +92,13 @@ def RMSE(dframe1, dframe2, df1_column, df2_column, decimals=3, time_column1=0, t
 ####
 
 #### Función para calcular la derivada de una señal mediante diferenciación finita por método central. Solo soporta pasos más pequeños que 1
-def derivative(dframe, column, time_step=0.001, normalize=1, time_column=0):
+def derivative(
+    dframe: DataFrame,
+    column: str,
+    normalize: int = 1,
+    time_step: float = 0.001,
+    time_column: int = 0
+) -> DataFrame:
     decimals = len(str(time_step).split('.')[-1])
     df_columns = dframe.columns
     
@@ -86,9 +110,9 @@ def derivative(dframe, column, time_step=0.001, normalize=1, time_column=0):
         dframe = dframe.reset_index(drop=True)
         
         if normalize != 1:
-            title = 'd/dt ' + '(' + column + ') normalized'
+            title = "(" + column + ")' normalized"
         else:
-            title = 'd/dt ' + '(' + column + ')'
+            title = "(" + column + ")'"
 
         dframe[title] = np.gradient(dframe[column], time_step)/normalize
         return dframe, title
