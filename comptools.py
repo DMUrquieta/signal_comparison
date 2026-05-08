@@ -121,3 +121,57 @@ def derivative(
         print('Error: Una de las columnas indicadas no se encuentra en su respectivo DataFrame')
         return 'Error'
 ####
+
+#### Función para deparar los transitorios de el estado estacionaro de una señal, de esta manera, es posible evaluar estas dos secciones
+# por separado usando el RMSE
+def transient_cut(
+    dframe: DataFrame,
+    dt_criteria: float,
+    df1_column: str,
+    df2_column: str | None = None,
+    normalize: int = 1
+    ) -> list[DataFrame, DataFrame, DataFrame]:
+    df_columns = dframe.columns
+
+    if df1_column in df_columns:
+        result, title_dt_1  = derivative(dframe, df1_column, normalize=normalize)
+        result, title_ddt_1 = derivative(result, title_dt_1)
+
+        mask_dt1  = abs(result[title_dt_1]) > dt_criteria  # Máscara de la primera derivada de la señal 1
+        mask_ddt1 = abs(result[title_ddt_1]) > dt_criteria # Máscara de la segunda derivada de la señal 1
+
+        mask_trn_1 = mask_dt1 | mask_ddt1   # Máscara para los transitorios de la señal 1
+        mask_sst_1 = ~mask_dt1 & ~mask_ddt1 # Máscara para los estacionarios de la señal 1
+
+        # Esto podría parecer redundante pero no lo es, ya que mask_trn y mask_sst podrían estar solo en
+        # función de la señal 1 o en función de la señal 1 y 2; dependiendo de si se indicó una segunda 
+        # columna que se encuentre en el dataframe
+        mask_trn = mask_trn_1
+        mask_sst = mask_sst_1
+
+
+        if df2_column and df2_column in df_columns:
+            result, title_dt_2  = derivative(result, df2_column, normalize=normalize)
+            result, title_ddt_2 = derivative(result, title_dt_2)
+
+            mask_dt2  = abs(result[title_dt_2]) > dt_criteria  # Máscara de la primera derivada de la señal 2
+            mask_ddt2 = abs(result[title_ddt_2]) > dt_criteria # Máscara de la segunda derivada de la señal 2
+
+            mask_trn_2 = mask_dt2 | mask_ddt2   # Máscara para los transitorios de la señal 2
+            mask_sst_2 = ~mask_dt2 & ~mask_ddt2 # Máscara para los estacionarios de la señal 2
+
+            mask_trn = mask_trn_1 | mask_trn_2 # Combinar las máscaras de la señal 1 y 2
+            mask_sst = mask_sst_1 & mask_sst_2 #
+            
+        elif df2_column and df2_column not in df_columns:
+            print(f'Error: La columna {df2_column} no se encuentra en el DataFrame')
+            return 'Error'
+        
+        trnFrame = result[mask_trn]
+        sstFrame = result[mask_sst]
+        
+        return result, trnFrame, sstFrame
+
+    else:
+        print(f'Error: La columna {df1_column} no se encuentra en el DataFrame')
+        return 'Error'
