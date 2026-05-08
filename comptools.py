@@ -69,26 +69,32 @@ def time_join(
 #### Función para obtemer Root Mean Squared Error entre 2 señales
 def RMSE(
     dframe1: DataFrame,
-    dframe2: DataFrame,
-    df1_column: str,
-    df2_column: str,
+    dframe2: DataFrame | None = None,
+    df1_column: str = 'Columna 1',
+    df2_column: str = 'Columna 2',
     decimals: int = 3,
     time_column1: int = 0,
     time_column2 :int = 0
     ) -> float:
     
     if type(df1_column) != str or type(df2_column) != str:
-        print('Error. Solo es posible obtener el error de dos columnas a la vez')
+        print('Error. Es necesario ingresar el nombre de una columna del dataframe')
         return np.nan
     else:
-        joined_result = time_join(dframe1, dframe2, df1_column, df2_column, decimals, time_column1, time_column2)
+        if isinstance(dframe2, pd.DataFrame):
+            joined_result = time_join(dframe1, dframe2, df1_column, df2_column, decimals, time_column1, time_column2)
+        else:
+            if df1_column in dframe1.columns and df2_column in dframe1.columns:
+                joined_result = dframe1
+            else:
+                print('Error: Una de las columnas indicadas no se encuentra en el DataFrame')
+                return np.nan
 
         if isinstance(joined_result, pd.DataFrame):
-            joined_result['sqr. error'] = (joined_result[df1_column] - joined_result[df2_column])**2
-            return np.sqrt(sum(joined_result['sqr. error']/joined_result.shape[0]))
+            sqr_error = (joined_result[df1_column] - joined_result[df2_column])**2
+            return np.sqrt(sum(sqr_error/joined_result.shape[0]))
         else:
             return np.nan
-
 ####
 
 #### Función para calcular la derivada de una señal mediante diferenciación finita por método central. Solo soporta pasos más pequeños que 1
