@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+from pandas._typing import Suffixes
 
 #### Función Half-up value round. Se hace porque para python round(0.035) = round(0.045) = 0.4
 # y esto claramente es incorrecto según lo que se nos enseña en la escuela
@@ -18,7 +19,8 @@ def time_join(
     df2_column: str | list[str],
     decimals: int = 3,
     time_column1: int = 0,
-    time_column2: int = 0
+    time_column2: int = 0,
+    suffixes: Suffixes = ("_serie_1", "_serie_2")
 ) -> DataFrame:
     
     df1_columns = dframe1.columns
@@ -48,10 +50,11 @@ def time_join(
             dframe1, dframe2,
             how='inner',
             left_on=df1_columns[time_column1],
-            right_on=df2_columns[time_column2]
+            right_on=df2_columns[time_column2],
+            suffixes=suffixes
         )
 
-        result = result.drop(columns=df2_columns[time_column2])
+        # result = result.drop(columns=df2_columns[time_column2])
         return result
     
     else: 
@@ -133,14 +136,15 @@ def derivative(
 def transient_cut(
     dframe: DataFrame,
     dt_criteria: float,
+    normalize: int,
     df1_column: str,
     df2_column: str | None = None,
-    normalize: int = 1
+    time_step: float = 0.001,
     ) -> list[DataFrame, DataFrame, DataFrame]:
     df_columns = dframe.columns
 
     if df1_column in df_columns:
-        result, title_dt_1  = derivative(dframe, df1_column, normalize=normalize)
+        result, title_dt_1  = derivative(dframe, df1_column, normalize=normalize, time_step=time_step)
         result, title_ddt_1 = derivative(result, title_dt_1)
 
         mask_dt1  = abs(result[title_dt_1]) > dt_criteria  # Máscara de la primera derivada de la señal 1
@@ -181,3 +185,4 @@ def transient_cut(
     else:
         print(f'Error: La columna {df1_column} no se encuentra en el DataFrame')
         return 'Error'
+    
