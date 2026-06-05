@@ -118,10 +118,11 @@ def derivative(
         dframe = dframe.drop_duplicates(subset=df_columns[time_column])
         dframe = dframe.reset_index(drop=True)
         
-        if normalize != 1:
-            title = "(" + column + ")' normalized"
-        else:
-            title = "(" + column + ")'"
+        # if normalize != 1:
+        #     title = "(" + column + ")' normalized"
+        # else:
+        #     title = "(" + column + ")'"
+        title = "(" + column + ")'"
 
         dframe[title] = np.gradient(dframe[column], time_step)/normalize
         return dframe, title
@@ -177,10 +178,11 @@ def transient_cut(
             print(f'Error: La columna {df2_column} no se encuentra en el DataFrame')
             return 'Error'
         
-        trnFrame = result[mask_trn]
-        sstFrame = result[mask_sst]
+        # trnFrame = result[mask_trn]
+        # sstFrame = result[mask_sst]
         
-        return result, trnFrame, sstFrame
+        # return result, trnFrame, sstFrame
+        return result, mask_trn, mask_sst
 
     else:
         print(f'Error: La columna {df1_column} no se encuentra en el DataFrame')
