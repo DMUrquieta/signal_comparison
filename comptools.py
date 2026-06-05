@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+from pandas import Series
 from pandas._typing import Suffixes
 
 #### Función Half-up value round. Se hace porque para python round(0.035) = round(0.045) = 0.4
@@ -86,6 +87,8 @@ def RMSE(
     else:
         if isinstance(dframe2, pd.DataFrame):
             joined_result = time_join(dframe1, dframe2, df1_column, df2_column, decimals, time_column1, time_column2)
+            df1_column = joined_result.columns[1]
+            df2_column = joined_result.columns[2]
         else:
             if df1_column in dframe1.columns and df2_column in dframe1.columns:
                 joined_result = dframe1
