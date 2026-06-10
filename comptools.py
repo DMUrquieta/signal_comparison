@@ -6,9 +6,9 @@ from pandas._typing import Suffixes
 
 #### Función Half-up value round. Se hace porque para python round(0.035) = round(0.045) = 0.4
 # y esto claramente es incorrecto según lo que se nos enseña en la escuela
-def HUP_round(series, decimals=3): # por ahora solo tolera rendondeo de decimales, no de ceros.
+def HUP_round(series: float | Series, decimals: int = 3): # por ahora solo tolera rendondeo de decimales, no de ceros.
     factor = 10**decimals
-    return np.floor(series * factor +0.5)/factor
+    return np.floor(series * factor + 0.6)/factor
 ####
 
 #### Función para unir dos dataframes a partir de su columna de tiempo. Únicamente se hace la operación
@@ -22,7 +22,7 @@ def time_join(
     time_column1: int = 0,
     time_column2: int = 0,
     suffixes: Suffixes = ("_serie_1", "_serie_2")
-) -> DataFrame:
+    ) -> DataFrame:
     
     df1_columns = dframe1.columns
     df2_columns = dframe2.columns
@@ -107,8 +107,8 @@ def RMSE(
 def derivative(
     dframe: DataFrame,
     column: str,
+    time_step: float,
     normalize: int = 1,
-    time_step: float = 0.001,
     time_column: int = 0
 ) -> DataFrame:
     decimals = len(str(time_step).split('.')[-1])
@@ -121,10 +121,8 @@ def derivative(
         dframe = dframe.drop_duplicates(subset=df_columns[time_column])
         dframe = dframe.reset_index(drop=True)
         
-        # if normalize != 1:
-        #     title = "(" + column + ")' normalized"
-        # else:
-        #     title = "(" + column + ")'"
+        if normalize != 1:
+            print(f'Advertencia: La señal se ha normalizado con respecto a {normalize}')
         title = "(" + column + ")'"
 
         dframe[title] = np.gradient(dframe[column], time_step)/normalize
@@ -174,6 +172,8 @@ def transient_cut(
             mask_trn_2 = mask_dt2 | mask_ddt2   # Máscara para los transitorios de la señal 2
             mask_sst_2 = ~mask_dt2 & ~mask_ddt2 # Máscara para los estacionarios de la señal 2
 
+            # Por esta declaración, la línea de la que se habló más arriba no es redundante. Ya que, dependiendo de si
+            # hay 1 o 2 dataframes, mask_trn y mask_sst podrían ser diferentes.
             mask_trn = mask_trn_1 | mask_trn_2 # Combinar las máscaras de la señal 1 y 2
             mask_sst = mask_sst_1 & mask_sst_2 #
             
@@ -185,9 +185,11 @@ def transient_cut(
         # sstFrame = result[mask_sst]
         
         # return result, trnFrame, sstFrame
-        return result, mask_trn, mask_sst
+        # Mejor no entregamos 3 dataframes, sino un dataframe completo y 2 máscaras que el usuario puede usar para separar el dataframe
+        # en transitorios y estacionarios sin utilizar memoria extra. Esto puede ayudar a reducir la memoria requerida al usar esta función.
+        return result, mask_trn, mask_sst 
 
     else:
         print(f'Error: La columna {df1_column} no se encuentra en el DataFrame')
         return 'Error'
-    
+
