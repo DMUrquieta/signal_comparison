@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from typing import Tuple
 from pandas import DataFrame
 from pandas import Series
 from pandas._typing import Suffixes
@@ -16,8 +17,8 @@ def HUP_round(series: float | Series, decimals: int = 3): # por ahora solo toler
 def time_join(
     dframe1: DataFrame,
     dframe2: DataFrame,
-    df1_column: str | list[str],
-    df2_column: str | list[str],
+    column_1: str | list[str],
+    column_2: str | list[str],
     decimals: int = 3,
     time_column1: int = 0,
     time_column2: int = 0,
@@ -27,11 +28,11 @@ def time_join(
     df1_columns = dframe1.columns
     df2_columns = dframe2.columns
 
-    df1_column = [df1_column] if type(df1_column) == str else df1_column # Transformar a lista si 
-    df2_column = [df2_column] if type(df2_column) == str else df2_column # se da un índice
+    column_1 = [column_1] if type(column_1) == str else column_1 # Transformar a lista si 
+    column_2 = [column_2] if type(column_2) == str else column_2 # se da un índice
     
-    dslindexer = dframe1.columns.get_indexer(df1_column) # Obtener los índices de las columnas 
-    pssindexer = dframe2.columns.get_indexer(df2_column) # ingresadas de los df
+    dslindexer = dframe1.columns.get_indexer(column_1) # Obtener los índices de las columnas 
+    pssindexer = dframe2.columns.get_indexer(column_2) # ingresadas de los dataframes
     
     if -1 not in dslindexer and -1 not in pssindexer:
 
@@ -60,11 +61,11 @@ def time_join(
     
     else: 
         if -1 in dslindexer:
-            nindex = [col for col in df1_column if col not in df1_columns]
+            nindex = [col for col in column_1 if col not in df1_columns]
             print(f'\nLas siguientes columnas no se encuentran en el DataFrame 1: \n{nindex}')
 
         if -1 in pssindexer:
-            nindex = [col for col in df2_column if col not in df2_columns]
+            nindex = [col for col in column_2 if col not in df2_columns]
             print(f'\nLas siguientes columnas no se encuentran en el DataFrame 2: \n{nindex}')
 
         return 'Error'
@@ -74,30 +75,30 @@ def time_join(
 def RMSE(
     dframe1: DataFrame,
     dframe2: DataFrame | None = None,
-    df1_column: str = 'Columna 1',
-    df2_column: str = 'Columna 2',
+    column_1: str = 'Columna 1',
+    column_2: str = 'Columna 2',
     decimals: int = 3,
     time_column1: int = 0,
     time_column2 :int = 0
     ) -> float:
     
-    if type(df1_column) != str or type(df2_column) != str:
+    if type(column_1) != str or type(column_2) != str:
         print('Error. Es necesario ingresar el nombre de una columna del dataframe')
         return np.nan
     else:
         if isinstance(dframe2, pd.DataFrame):
-            joined_result = time_join(dframe1, dframe2, df1_column, df2_column, decimals, time_column1, time_column2)
-            df1_column = joined_result.columns[1]
-            df2_column = joined_result.columns[2]
+            joined_result = time_join(dframe1, dframe2, column_1, column_2, decimals, time_column1, time_column2)
+            column_1 = joined_result.columns[1]
+            column_2 = joined_result.columns[2]
         else:
-            if df1_column in dframe1.columns and df2_column in dframe1.columns:
+            if column_1 in dframe1.columns and column_2 in dframe1.columns:
                 joined_result = dframe1
             else:
                 print('Error: Una de las columnas indicadas no se encuentra en el DataFrame')
                 return np.nan
 
         if isinstance(joined_result, pd.DataFrame):
-            sqr_error = (joined_result[df1_column] - joined_result[df2_column])**2
+            sqr_error = (joined_result[column_1] - joined_result[column_2])**2
             return np.sqrt(sum(sqr_error/joined_result.shape[0]))
         else:
             return np.nan
@@ -110,7 +111,7 @@ def derivative(
     time_step: float,
     normalize: int = 1,
     time_column: int = 0
-) -> DataFrame:
+    ) -> Tuple[DataFrame, str]:
     decimals = len(str(time_step).split('.')[-1])
     df_columns = dframe.columns
     
@@ -122,8 +123,9 @@ def derivative(
         dframe = dframe.reset_index(drop=True)
         
         if normalize != 1:
-            print(f'Advertencia: La señal se ha normalizado con respecto a {normalize}')
-        title = "(" + column + ")'"
+            print(f'Advertencia: La señal {column} se ha normalizado con respecto a {normalize}')
+        # title = "(" + column + ")'"
+        title = column + "'"
 
         dframe[title] = np.gradient(dframe[column], time_step)/normalize
         return dframe, title
@@ -133,24 +135,27 @@ def derivative(
         return 'Error'
 ####
 
-#### Función para deparar los transitorios de el estado estacionaro de una señal, de esta manera, es posible evaluar estas dos secciones
-# por separado usando el RMSE
+#### Función para separar los transitorios de los segmentos en estado estacionario de una señal, de esta manera
+# es posible evaluar estas dos secciones por separado usando el RMSE
 def transient_cut(
     dframe: DataFrame,
-    dt_criteria: float,
+    column_1: str,
+    time_step: float,
+    dt_threshold: int | float,
     normalize: int,
-    df1_column: str,
-    df2_column: str | None = None,
-    time_step: float = 0.001,
-    ) -> list[DataFrame, DataFrame, DataFrame]:
+    ddt_threshold: int | float | None = None,
+    column_2: str | None = None
+    ) -> Tuple[DataFrame, Series, Series]:
+
+    if ddt_threshold  is None: ddt_threshold  = dt_threshold
     df_columns = dframe.columns
 
-    if df1_column in df_columns:
-        result, title_dt_1  = derivative(dframe, df1_column, normalize=normalize, time_step=time_step)
-        result, title_ddt_1 = derivative(result, title_dt_1)
+    if column_1 in df_columns:
+        result, title_dt_1  = derivative(dframe, column_1, normalize=normalize, time_step=time_step)
+        result, title_ddt_1 = derivative(result, title_dt_1, normalize=1, time_step=time_step)
 
-        mask_dt1  = abs(result[title_dt_1]) > dt_criteria  # Máscara de la primera derivada de la señal 1
-        mask_ddt1 = abs(result[title_ddt_1]) > dt_criteria # Máscara de la segunda derivada de la señal 1
+        mask_dt1  = abs(result[title_dt_1]) > dt_threshold # Máscara de la primera derivada de la señal 1
+        mask_ddt1 = abs(result[title_ddt_1]) > ddt_threshold # Máscara de la segunda derivada de la señal 1
 
         mask_trn_1 = mask_dt1 | mask_ddt1   # Máscara para los transitorios de la señal 1
         mask_sst_1 = ~mask_dt1 & ~mask_ddt1 # Máscara para los estacionarios de la señal 1
@@ -162,12 +167,12 @@ def transient_cut(
         mask_sst = mask_sst_1
 
 
-        if df2_column and df2_column in df_columns:
-            result, title_dt_2  = derivative(result, df2_column, normalize=normalize)
-            result, title_ddt_2 = derivative(result, title_dt_2)
+        if column_2 and column_2 in df_columns:
+            result, title_dt_2  = derivative(result, column_2, normalize=normalize)
+            result, title_ddt_2 = derivative(result, title_dt_2, normalize=1, time_step=time_step)
 
-            mask_dt2  = abs(result[title_dt_2]) > dt_criteria  # Máscara de la primera derivada de la señal 2
-            mask_ddt2 = abs(result[title_ddt_2]) > dt_criteria # Máscara de la segunda derivada de la señal 2
+            mask_dt2  = abs(result[title_dt_2]) > dt_threshold # Máscara de la primera derivada de la señal 2
+            mask_ddt2 = abs(result[title_ddt_2]) > ddt_threshold # Máscara de la segunda derivada de la señal 2
 
             mask_trn_2 = mask_dt2 | mask_ddt2   # Máscara para los transitorios de la señal 2
             mask_sst_2 = ~mask_dt2 & ~mask_ddt2 # Máscara para los estacionarios de la señal 2
@@ -177,8 +182,8 @@ def transient_cut(
             mask_trn = mask_trn_1 | mask_trn_2 # Combinar las máscaras de la señal 1 y 2
             mask_sst = mask_sst_1 & mask_sst_2 #
             
-        elif df2_column and df2_column not in df_columns:
-            print(f'Error: La columna {df2_column} no se encuentra en el DataFrame')
+        elif column_2 and column_2 not in df_columns:
+            print(f'Error: La columna {column_2} no se encuentra en el DataFrame')
             return 'Error'
         
         # trnFrame = result[mask_trn]
@@ -190,6 +195,7 @@ def transient_cut(
         return result, mask_trn, mask_sst 
 
     else:
-        print(f'Error: La columna {df1_column} no se encuentra en el DataFrame')
+        print(f'Error: La columna {column_1} no se encuentra en el DataFrame')
         return 'Error'
+
 
